@@ -1,5 +1,5 @@
 /**
- * SPARK DATING APP - MAIN APPLICATION
+ * PRIDE GUARD DATING APP - MAIN APPLICATION
  * Основная логика приложения знакомств
  */
 
@@ -1210,14 +1210,23 @@ window.finishOnboarding = async function (event) {
 
         // Send verification code via Edge Function
         const result = await sendVerificationCode(email);
+        console.log('DEBUG: sendVerificationCode result:', result);
 
-        // ADDED: Check for code existence
-        if (!result || !result.code) {
-            throw new Error('Unable to get verification code');
+        let verificationCode = null;
+        if (result && typeof result === 'object' && result.code) {
+            verificationCode = result.code;
+        } else if (result && typeof result === 'string') {
+            verificationCode = result;
+        }
+
+        // Check for code existence
+        if (!verificationCode) {
+            console.error('❌ Verification code missing in response:', result);
+            throw new Error('Unable to get verification code from server');
         }
 
         // Store code temporarily (expires in 10 minutes)
-        storeVerificationCode(email, result.code, 10);
+        storeVerificationCode(email, verificationCode, 10);
 
         // Store email for later use
         state.pendingEmail = email;
