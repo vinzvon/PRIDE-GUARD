@@ -1024,64 +1024,23 @@ export async function unbanUser(userId) {
 
 /**
  * Send verification code to email via Supabase Edge Function
+ * SECURE: Code is stored in database, NOT returned to client
  * @param {string} email - User email
- * @returns {Promise<string>} Verification code
+ * @returns {Promise<Object>} {success: true}
  */
 export async function sendVerificationCode(email) {
-    const isTelegram = () => window.Telegram?.WebApp?.initData;
-    const maxRetries = 3;
-    const timeout = 15000; // 15 seconds
-    let lastError = null;
-
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-        try {
-            console.log(`📧 Attempt ${attempt}/${maxRetries}: Sending verification code to ${email}`);
-            if (isTelegram()) {
-                console.log('📱 Running in Telegram Web App');
-            }
-
-            const supabase = getSupabase();
-            const supabaseUrl = supabase.supabaseUrl;
-            const anonKey = supabase.supabaseKey;
-
-            // Wrap fetch with timeout using Promise.race
-            const fetchPromise = fetch(
-                `${supabaseUrl}/functions/v1/send-verification-code`,
-                {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${anonKey}`,
-                    },
-                    body: JSON.stringify({ email }),
-                }
-            );
-
-            const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error(`Request timeout after ${timeout}ms`)), timeout)
-            );
-
-            const response = await Promise.race([fetchPromise, timeoutPromise]);
-
-            if (!response.ok) {
-                let errorMsg = 'Failed to send email';
-                try {
-                    const error = await response.json();
-                    errorMsg = error.error || error.message || errorMsg;
-                } catch (e) {
-                    // Response is not JSON
-                    errorMsg = `HTTP ${response.status}: ${response.statusText}`;
-                }
-                throw new Error(errorMsg);
-            }
-
-            const data = await response.json();
-            console.log(`✅ Verification code sent to ${email}`);
-            console.log(`📝 Code: ${data.code}`);
-            return data.code;
-        } catch (error) {
-            lastError = error;
-            console.error(`❌ Attempt ${attempt} failed:`, error.message);
+    const supabase = getSupabase();
+    console.log(`📧 Sending verification code to ${email}`);
+    const { data, error } = await supabase.functions.invoke('send-verification-code', {
+        body: { email }
+    });
+    if (error) {
+        console.error('❌ Error sending code:', error);
+        throw error;
+    }
+    console.log('✅ Code sent successfully (stored securely in database)');
+    return { success: true };
+}
 
             // If last attempt, throw error
             if (attempt === maxRetries) {
@@ -1117,25 +1076,29 @@ export function storeVerificationCode(email, code, expiresInMinutes = 10) {
 }
 
 /**
- * Verify code for email
+ * Verify code via Supabase Edge Function
+ * SECURE: Verification happens on server, code never exposed to client
  * @param {string} email - User email
- * @param {string} providedCode - Code provided by user
- * @returns {boolean} True if code is valid
+ * @param {string} code - Verification code entered by user
+ * @returns {Promise<boolean>} True if code is valid
  */
-export function verifyCode(email, providedCode) {
-    if (!window.__verificationCodes || !window.__verificationCodes[email]) {
-        console.warn('⚠️ No verification code found for', email);
+export async function verifyCode(email, code) {
+    const supabase = getSupabase();
+    console.log(`🔐 Verifying code for ${email}`);
+    const { data, error } = await supabase.functions.invoke('verify-code', {
+        body: { email, code }
+    });
+    if (error) {
+        console.error('❌ Verification error:', error);
         return false;
     }
-
-    const stored = window.__verificationCodes[email];
-
-    // Check if expired
-    if (Date.now() > stored.expiresAt) {
-        console.warn('⚠️ Verification code expired for', email);
-        delete window.__verificationCodes[email];
+    if (!data?.success) {
+        console.log('❌ Invalid or expired code');
         return false;
     }
+    console.log('✅ Code verified successfully');
+    return true;
+}
 
     // Check if code matches (case-insensitive, numeric)
     const normalizedProvided = providedCode.toString().toUpperCase().trim();
