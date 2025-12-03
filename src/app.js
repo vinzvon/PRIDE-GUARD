@@ -436,7 +436,7 @@ function initApp() {
 
                                 if (error) {
                                     console.error('❌ Failed to restore session:', error);
-                                    showNotification('Ошибка восстановления сессии. Попробуйте перезайти.', 'error');
+                                    showNotification('Session restore error. Please try logging in again.', 'error');
                                     state.isLoading = false;
                                     startOnboarding();
                                     return;
@@ -445,14 +445,14 @@ function initApp() {
                                 console.log('✅ Session restored from CloudStorage');
                             } catch (error) {
                                 console.error('❌ Error restoring session:', error);
-                                showNotification('Ошибка восстановления сессии. Попробуйте перезайти.', 'error');
+                                showNotification('Session restore error. Please try logging in again.', 'error');
                                 state.isLoading = false;
                                 startOnboarding();
                                 return;
                             }
                         } else {
                             console.warn('⚠️ No credentials found in CloudStorage');
-                            showNotification('Требуется повторная авторизация', 'warning');
+                            showNotification('Re-authentication required', 'warning');
                             state.isLoading = false;
                             startOnboarding();
                             return;
@@ -504,7 +504,7 @@ function initApp() {
             }
         } catch (error) {
             console.error('❌ Error initializing app:', error);
-            showNotification('Ошибка подключения. Проверьте конфигурацию.', 'error');
+            showNotification('Connection error. Please check configuration.', 'error');
             state.isLoading = false;
             startOnboarding();
         }
@@ -1053,7 +1053,7 @@ window.activatePromocode = async function () {
         }
     } catch (error) {
         console.error('Error activating promocode:', error);
-        showNotification('Ошибка активации промокода', 'error');
+        showNotification('Promocode activation error', 'error');
     }
 };
 
@@ -1083,15 +1083,15 @@ function showBannedScreen() {
             hour: '2-digit',
             minute: '2-digit'
         });
-        banDateInfo.textContent = `Дата блокировки: ${formattedDate}`;
+        banDateInfo.textContent = `Ban date: ${formattedDate}`;
     } else if (banDateInfo) {
-        banDateInfo.textContent = 'Дата блокировки неизвестна';
+        banDateInfo.textContent = 'Ban date unknown';
     }
 
     // Set user ID for reference
     const userIdEl = bannedContainer.querySelector('#banned-user-id');
     if (userIdEl && state.userId) {
-        userIdEl.textContent = `ID пользователя: ${state.userId}`;
+        userIdEl.textContent = `User ID: ${state.userId}`;
     }
 
     appContent.appendChild(bannedContainer);
@@ -1173,7 +1173,7 @@ window.finishOnboarding = async function (event) {
     const originalBtnText = submitBtn ? submitBtn.innerHTML : '';
     if (submitBtn) {
         submitBtn.disabled = true;
-        submitBtn.innerHTML = '<span class="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></span>Загрузка...';
+        submitBtn.innerHTML = '<span class="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></span>Loading...';
     }
 
     const form = event.target;
@@ -1181,7 +1181,7 @@ window.finishOnboarding = async function (event) {
 
     // Validate email
     if (!email) {
-        showNotification('Введите почту!', 'error');
+        showNotification('Enter your email!', 'error');
         state.isRegistering = false;
         if (submitBtn) {
             submitBtn.disabled = false;
@@ -1193,7 +1193,7 @@ window.finishOnboarding = async function (event) {
     // Email regex validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-        showNotification('Введите корректный email!', 'error');
+        showNotification('Enter a valid email!', 'error');
         state.isRegistering = false;
         if (submitBtn) {
             submitBtn.disabled = false;
@@ -1206,18 +1206,18 @@ window.finishOnboarding = async function (event) {
     console.log('📱 Telegram ID available:', !!state.telegramId);
 
     try {
-        showNotification('Отправка кода подтверждения...', 'info');
+        showNotification('Sending verification code...', 'info');
 
         // Send verification code via Edge Function
-        const code = await sendVerificationCode(email);
+        const result = await sendVerificationCode(email);
 
-        // ДОБАВЛЕНО: Проверка на наличие кода
-        if (!code) {
-            throw new Error('Не удалось получить код подтверждения');
+        // ADDED: Check for code existence
+        if (!result || !result.code) {
+            throw new Error('Unable to get verification code');
         }
 
         // Store code temporarily (expires in 10 minutes)
-        storeVerificationCode(email, code, 10);
+        storeVerificationCode(email, result.code, 10);
 
         // Store email for later use
         state.pendingEmail = email;
@@ -1229,7 +1229,7 @@ window.finishOnboarding = async function (event) {
 
     } catch (error) {
         console.error('❌ Error sending verification code:', error);
-        showNotification(`Ошибка отправки кода: ${error.message}`, 'error');
+        showNotification(`Error sending code: ${error.message}`, 'error');
     } finally {
         state.isRegistering = false;
         if (submitBtn) {
@@ -1285,14 +1285,14 @@ window.handleVerifyCode = async function (event) {
     const originalBtnText = submitBtn ? submitBtn.innerHTML : '';
 
     if (!code || code.length !== 6) {
-        showErrorMessage('Введите полный 6-символный код');
+        showErrorMessage('Enter the full 6-character code');
         state.isVerifying = false;
         return;
     }
 
     if (submitBtn) {
         submitBtn.disabled = true;
-        submitBtn.innerHTML = '<span class="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></span>Проверка...';
+        submitBtn.innerHTML = '<span class="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></span>Verifying...';
     }
 
     try {
@@ -1302,7 +1302,7 @@ window.handleVerifyCode = async function (event) {
         const isValid = verifyCode(state.pendingEmail, code);
 
         if (!isValid) {
-            showErrorMessage('Неверный или истекший код. Попробуйте снова.');
+            showErrorMessage('Invalid or expired code. Please try again.');
             state.isVerifying = false;
             if (submitBtn) {
                 submitBtn.disabled = false;
@@ -1312,7 +1312,7 @@ window.handleVerifyCode = async function (event) {
         }
 
         console.log('✅ Code verified successfully');
-        showNotification('✅ Код верифицирован! Создаём аккаунт...', 'success');
+        showNotification('✅ Code verified! Creating account...', 'success');
 
         const email = state.pendingEmail;
 
@@ -1358,7 +1358,7 @@ window.handleVerifyCode = async function (event) {
 
         // Upload photos if any
         if (state.pendingPhotoFiles && state.pendingPhotoFiles.length > 0) {
-            showNotification(`Загрузка ${state.pendingPhotoFiles.length} фото...`, 'info');
+            showNotification(`Uploading ${state.pendingPhotoFiles.length} photos...`, 'info');
 
             const uploadedUrls = [];
             for (const photoFile of state.pendingPhotoFiles) {
@@ -1394,11 +1394,11 @@ window.handleVerifyCode = async function (event) {
 
         // Navigate to swipe
         navigate('swipe');
-        showNotification('🎉 Профиль создан! Добро пожаловать в Pride Guard!', 'success');
+        showNotification('🎉 Profile created! Welcome to Pride Guard!', 'success');
 
     } catch (error) {
         console.error('❌ Registration error:', error);
-        showErrorMessage(`Ошибка регистрации: ${error.message}`);
+        showErrorMessage(`Registration error: ${error.message}`);
     } finally {
         state.isVerifying = false;
         if (submitBtn) {
@@ -1553,7 +1553,7 @@ window.handleVerificationPhotoUpload = async function (input) {
         console.log('✅ Verification photo ready:', file.name);
     } catch (error) {
         console.error('❌ Error handling verification photo:', error);
-        showNotification('Ошибка загрузки фото', 'error');
+        showNotification('Photo upload error', 'error');
     }
 };
 
@@ -1564,12 +1564,12 @@ window.submitVerification = async function () {
     if (state.isSubmittingVerification) return;
 
     if (!state.verificationPhotoFile) {
-        showNotification('Загрузите фото для верификации', 'error');
+        showNotification('Upload photo for verification', 'error');
         return;
     }
 
     if (!state.verificationChallenge) {
-        showNotification('Ошибка: нет данных о жесте', 'error');
+        showNotification('Error: no gesture data', 'error');
         return;
     }
 
@@ -1579,7 +1579,7 @@ window.submitVerification = async function () {
 
     if (submitBtn) {
         submitBtn.disabled = true;
-        submitBtn.innerHTML = '<span class="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></span>Загрузка...';
+        submitBtn.innerHTML = '<span class="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></span>Uploading...';
     }
 
     try {
@@ -1607,12 +1607,12 @@ window.submitVerification = async function () {
         state.verificationChallenge = null;
 
         // Show pending screen
-        showNotification('✅ Заявка отправлена на модерацию!', 'success');
+        showNotification('✅ Request submitted for moderation!', 'success');
         renderVerificationPending();
 
     } catch (error) {
         console.error('❌ Error submitting verification:', error);
-        showNotification(`Ошибка отправки: ${error.message}`, 'error');
+        showNotification(`Submission error: ${error.message}`, 'error');
     } finally {
         state.isSubmittingVerification = false;
         if (submitBtn) {
@@ -1640,7 +1640,7 @@ window.navigate = async function (view) {
     // Block navigation for banned users
     if (state.myProfile?.is_banned) {
         console.log('🚫 Navigation blocked - user is banned');
-        showNotification('Ваш аккаунт заблокирован', 'error');
+        showNotification('Your account is banned', 'error');
         return;
     }
 
@@ -1685,7 +1685,7 @@ window.navigate = async function (view) {
             break;
         case 'admin':
             if (!state.isAdmin) {
-                showNotification('Доступ запрещен', 'error');
+                showNotification('Access denied', 'error');
                 navigate('profile');
                 return;
             }
@@ -1978,7 +1978,7 @@ function renderProfileView() {
 // ========================================
 
 async function renderVIPSettingsView() {
-    appContent.innerHTML = '<div class="flex items-center justify-center min-h-screen"><div class="text-center"><div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-500 mx-auto mb-4"></div><p class="text-gray-500">Загрузка...</p></div></div>';
+    appContent.innerHTML = '<div class="flex items-center justify-center min-h-screen"><div class="text-center"><div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-500 mx-auto mb-4"></div><p class="text-gray-500">Loading...</p></div></div>';
 
     try {
         const html = await renderVIPSettings();
@@ -1989,10 +1989,10 @@ async function renderVIPSettingsView() {
             <div class="max-w-4xl mx-auto px-4 py-8">
                 <div class="text-center">
                     <div class="text-6xl mb-4">⚠️</div>
-                    <h2 class="text-2xl font-bold mb-2" style="color: var(--text-primary);">Ошибка загрузки</h2>
-                    <p class="text-gray-500 mb-6">Не удалось загрузить настройки VIP</p>
+                    <h2 class="text-2xl font-bold mb-2" style="color: var(--text-primary);">Loading Error</h2>
+                    <p class="text-gray-500 mb-6">Failed to load VIP settings</p>
                     <button onclick="navigate('profile')" class="bg-red-500 text-white px-6 py-3 rounded-xl font-semibold hover:bg-red-600 transition-colors">
-                        Вернуться в профиль
+                        Back to Profile
                     </button>
                 </div>
             </div>
@@ -2270,22 +2270,22 @@ function renderProfileDisplay() {
         vipBadge.classList.remove('hidden');
     }
 
-    viewContainer.querySelector('#profile-view-city').textContent = `📍 ${p.city || 'Не указан'}`;
+    viewContainer.querySelector('#profile-view-city').textContent = `📍 ${p.city || 'Not specified'}`;
 
     // Stats
-    viewContainer.querySelector('#profile-view-height').textContent = p.height ? `${p.height} см` : '--';
-    viewContainer.querySelector('#profile-view-weight').textContent = p.weight ? `${p.weight} кг` : '--';
+    viewContainer.querySelector('#profile-view-height').textContent = p.height ? `${p.height} cm` : '--';
+    viewContainer.querySelector('#profile-view-weight').textContent = p.weight ? `${p.weight} kg` : '--';
 
     const bodyTypes = {
-        'slim': 'Стройное', 'average': 'Среднее', 'athletic': 'Атлетичное',
-        'muscular': 'Мускулистое', 'curvy': 'Плотное', 'large': 'Крупное'
+        'slim': 'Slim', 'average': 'Average', 'athletic': 'Athletic',
+        'muscular': 'Muscular', 'curvy': 'Curvy', 'large': 'Large'
     };
     viewContainer.querySelector('#profile-view-body').textContent = bodyTypes[p.bodyType || p.body_type] || '--';
 
     const roles = {
-        'top': 'Топ', 'bottom': 'Боттом', 'vers': 'Верс', 'side': 'Сайд',
-        'oral': 'Орал', 'toys': 'Игрушки', 'dom': 'Доминант',
-        'sub': 'Сабмиссив', 'master': 'Мастер', 'slave': 'Слейв'
+        'top': 'Top', 'bottom': 'Bottom', 'vers': 'Vers', 'side': 'Side',
+        'oral': 'Oral', 'toys': 'Toys', 'dom': 'Dom',
+        'sub': 'Sub', 'master': 'Master', 'slave': 'Slave'
     };
     viewContainer.querySelector('#profile-view-role').textContent = roles[p.role] || '--';
 
@@ -2366,7 +2366,7 @@ window.detectLocation = async function () {
     }
 
     try {
-        showNotification('⏳ Определение города...', 'info');
+        showNotification('⏳ Detecting city...', 'info');
 
         const response = await fetch('https://api.2ip.io/?token=9mg0aouhfmk54u6v');
         if (!response.ok) throw new Error('Network response was not ok');
@@ -2375,13 +2375,13 @@ window.detectLocation = async function () {
 
         if (data && data.city) {
             form.city.value = data.city;
-            showNotification(`📍 Ваш город: ${data.city}`, 'success');
+            showNotification(`📍 Your city: ${data.city}`, 'success');
         } else {
             throw new Error('City not found in response');
         }
     } catch (error) {
         console.error('Geolocation error:', error);
-        showNotification('Не удалось определить город', 'error');
+        showNotification('Unable to detect city', 'error');
     } finally {
         if (btn) {
             btn.style.transform = 'scale(1)';
@@ -2394,7 +2394,7 @@ window.saveProfile = async function () {
     const form = document.getElementById('profile-form');
 
     if (!form) {
-        showNotification('Форма не найдена!', 'error');
+        showNotification('Form not found!', 'error');
         return;
     }
 
@@ -2410,7 +2410,7 @@ window.saveProfile = async function () {
 
     // Validation: Basic
     if (!name || !dob || !city) {
-        showNotification('Заполните основные поля!', 'error');
+        showNotification('Fill in the basic fields!', 'error');
         return;
     }
 
@@ -2418,7 +2418,7 @@ window.saveProfile = async function () {
     const age = calculateAge(dob);
     if (age < 18 || age > 99) {
         document.getElementById('dob-error').classList.remove('hidden');
-        showNotification('Возраст должен быть 18+!', 'error');
+        showNotification('Age must be 18+!', 'error');
         return;
     } else {
         document.getElementById('dob-error').classList.add('hidden');
@@ -2454,16 +2454,16 @@ window.saveProfile = async function () {
     }
 
     if (photos.length === 0) {
-        showNotification('Добавьте хотя бы одно фото!', 'error');
+        showNotification('Add at least one photo!', 'error');
         return;
     }
 
     // Bio Validation
     let bio = form.bio.value.trim();
-    bio = bio.replace(urlRegex, '[ссылка удалена]').trim(); // Replace URLs in bio
+    bio = bio.replace(urlRegex, '[link removed]').trim(); // Replace URLs in bio
 
     if (!validateBio(bio)) {
-        showNotification('Описание содержит недопустимые слова!', 'error');
+        showNotification('Bio contains inappropriate words!', 'error');
         return;
     }
 
@@ -2494,19 +2494,19 @@ window.saveProfile = async function () {
 
     // Validation: Height and Weight minimums (in metric)
     if (height && height < 120) {
-        showNotification('⚠️ Минимальный рост: 120 см (47 дюймов)', 'error');
+        showNotification('⚠️ Minimum height: 120 cm (47 inches)', 'error');
         return;
     }
     if (height && height > 300) {
-        showNotification('⚠️ Максимальный рост: 300 см (118 дюймов)', 'error');
+        showNotification('⚠️ Maximum height: 300 cm (118 inches)', 'error');
         return;
     }
     if (weight && weight < 30) {
-        showNotification('⚠️ Минимальный вес: 30 кг (66 фунтов)', 'error');
+        showNotification('⚠️ Minimum weight: 30 kg (66 pounds)', 'error');
         return;
     }
     if (weight && weight > 300) {
-        showNotification('⚠️ Максимальный вес: 300 кг (661 фунт)', 'error');
+        showNotification('⚠️ Maximum weight: 300 kg (661 pounds)', 'error');
         return;
     }
 
@@ -2545,7 +2545,7 @@ window.saveProfile = async function () {
     } else {
         // Update profile in Supabase if user is authenticated
         try {
-            showNotification('⏳ Сохранение профиля...', 'info');
+            showNotification('⏳ Saving profile...', 'info');
 
             // 1. Delete photos marked for deletion
             const photosToDelete = [];
@@ -2597,10 +2597,10 @@ window.saveProfile = async function () {
             state.myProfile = profileData;
             state.pendingPhotoFiles = []; // Clear pending
 
-            showNotification('✅ Профиль обновлен!', 'success');
+            showNotification('✅ Profile updated!', 'success');
         } catch (error) {
             console.error('❌ Error updating profile:', error);
-            showNotification('Ошибка сохранения профиля', 'error');
+            showNotification('Profile save error', 'error');
         }
         state.isEditingProfile = false;
         renderProfileView();
@@ -3051,27 +3051,27 @@ async function showAdminUserDetail(userId) {
                     
                     ${user.verification_status === 'pending' && user.verification_photo ? `
                         <div class="mt-3">
-                            <p class="text-sm mb-2" style="color: var(--text-secondary);">Требуемый жест:</p>
+                            <p class="text-sm mb-2" style="color: var(--text-secondary);">Required gesture:</p>
                             ${user.verification_gesture ? `
                                 <div class="flex gap-4 mb-3 text-sm">
                                     <div class="flex items-center gap-2">
-                                        <span class="font-semibold">Пальцев:</span>
+                                        <span class="font-semibold">Fingers:</span>
                                         <span class="text-2xl">${user.verification_gesture.fingers || '?'}</span>
                                     </div>
                                     <div class="flex items-center gap-2">
-                                        <span class="font-semibold">Выражение:</span>
+                                        <span class="font-semibold">Expression:</span>
                                         <span>${user.verification_gesture.expression || '?'}</span>
                                     </div>
                                 </div>
                             ` : ''}
-                            <img src="${user.verification_photo}" alt="Фото верификации" 
+                            <img src="${user.verification_photo}" alt="Verification photo" 
                                 class="w-full max-w-sm rounded-xl shadow-lg mx-auto">
                         </div>
                     ` : ''}
                     
                     ${user.verification_submitted_at ? `
                         <p class="text-xs mt-2 opacity-70" style="color: var(--text-secondary);">
-                            Отправлено: ${new Date(user.verification_submitted_at).toLocaleString('ru-RU')}
+                            Submitted: ${new Date(user.verification_submitted_at).toLocaleString('en-US')}
                         </p>
                     ` : ''}
                 </div>
@@ -3080,11 +3080,11 @@ async function showAdminUserDetail(userId) {
                 <!-- Dates -->
                 <div>
                     <p class="text-xs opacity-70" style="color: var(--text-secondary);">
-                        Зарегистрирован: ${user.created_at ? new Date(user.created_at).toLocaleDateString('ru-RU') : 'Неизвестно'}
+                        Registered: ${user.created_at ? new Date(user.created_at).toLocaleDateString('en-US') : 'Unknown'}
                     </p>
                     ${user.banned_at ? `
                     <p class="text-xs opacity-70 text-red-500">
-                        Забанен: ${new Date(user.banned_at).toLocaleDateString('ru-RU')}
+                        Banned: ${new Date(user.banned_at).toLocaleDateString('en-US')}
                     </p>
                     ` : ''}
                 </div>
@@ -3095,11 +3095,11 @@ async function showAdminUserDetail(userId) {
                         <div class="flex gap-3">
                             <button onclick="handleApproveVerification('${user.id}')" 
                                 class="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all duration-300 hover:scale-105 ripple">
-                                ✅ Одобрить верификацию
+                                ✅ Approve Verification
                             </button>
                             <button onclick="handleRejectVerification('${user.id}')" 
                                 class="flex-1 bg-gradient-to-r from-orange-500 to-red-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all duration-300 hover:scale-105 ripple">
-                                ❌ Отклонить
+                                ❌ Reject
                             </button>
                         </div>
                         <hr style="border-color: var(--border-color);">
@@ -3109,12 +3109,12 @@ async function showAdminUserDetail(userId) {
                         ${user.is_banned ? `
                             <button onclick="handleUnbanUser('${user.id}')" 
                                 class="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all duration-300 hover:scale-105 ripple">
-                                ✅ Разбанить
+                                ✅ Unban
                             </button>
                         ` : `
                             <button onclick="handleBanUser('${user.id}')" 
                                 class="flex-1 bg-gradient-to-r from-red-500 to-red-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all duration-300 hover:scale-105 ripple">
-                                🚫 Забанить
+                                🚫 Ban
                             </button>
                         `}
                     </div>
@@ -3125,7 +3125,7 @@ async function showAdminUserDetail(userId) {
         modal.classList.remove('hidden');
     } catch (error) {
         console.error('❌ Error loading user details:', error);
-        showNotification('Ошибка загрузки данных пользователя', 'error');
+        showNotification('Error loading user data', 'error');
     }
 }
 
@@ -3138,30 +3138,30 @@ window.closeAdminUserModal = function () {
 };
 
 window.handleBanUser = async function (userId) {
-    if (!confirm('Вы уверены, что хотите забанить этого пользователя?')) {
+    if (!confirm('Are you sure you want to ban this user?')) {
         return;
     }
 
     try {
         await banUser(userId);
-        showNotification('✅ Пользователь забанен', 'success');
+        showNotification('✅ User banned', 'success');
         closeAdminUserModal();
         await loadAdminUsers(); // Reload list
     } catch (error) {
         console.error('❌ Error banning user:', error);
-        showNotification('Ошибка при бане пользователя', 'error');
+        showNotification('Error banning user', 'error');
     }
 };
 
 window.handleUnbanUser = async function (userId) {
     try {
         await unbanUser(userId);
-        showNotification('✅ Пользователь разбанен', 'success');
+        showNotification('✅ User unbanned', 'success');
         closeAdminUserModal();
         await loadAdminUsers(); // Reload list
     } catch (error) {
         console.error('❌ Error unbanning user:', error);
-        showNotification('Ошибка при разбане пользователя', 'error');
+        showNotification('Error unbanning user', 'error');
     }
 };
 
@@ -3181,7 +3181,7 @@ window.handleAdminAdjustCurrency = async function (userId, currencyType, action)
         const amount = parseInt(input.value);
 
         if (isNaN(amount) || amount === 0) {
-            showNotification('Введите корректное количество', 'error');
+            showNotification('Enter valid amount', 'error');
             return;
         }
 
@@ -3348,16 +3348,16 @@ window.handleGrantVIP = async function (userId) {
  * Handle verification approval (admin only)
  */
 window.handleApproveVerification = async function (userId) {
-    if (!confirm('Одобрить верификацию этого пользователя?')) return;
+    if (!confirm('Approve this user\'s verification?')) return;
 
     try {
         await approveVerification(userId);
-        showNotification('✅ Верификация одобрена!', 'success');
+        showNotification('✅ Verification approved!', 'success');
         closeAdminUserModal();
         await loadAdminUsers();
     } catch (error) {
         console.error('❌ Error approving verification:', error);
-        showNotification(`Ошибка: ${error.message}`, 'error');
+        showNotification(`Error: ${error.message}`, 'error');
     }
 };
 
@@ -3365,16 +3365,16 @@ window.handleApproveVerification = async function (userId) {
  * Handle verification rejection (admin only)
  */
 window.handleRejectVerification = async function (userId) {
-    if (!confirm('Отклонить верификацию? Пользователю нужно будет пройти верификацию заново.')) return;
+    if (!confirm('Reject verification? User will need to verify again.')) return;
 
     try {
         await rejectVerification(userId);
-        showNotification('❌ Верификация отклонена', 'success');
+        showNotification('❌ Verification rejected', 'success');
         closeAdminUserModal();
         await loadAdminUsers();
     } catch (error) {
         console.error('❌ Error rejecting verification:', error);
-        showNotification(`Ошибка: ${error.message}`, 'error');
+        showNotification(`Error: ${error.message}`, 'error');
     }
 };
 
@@ -3425,28 +3425,28 @@ window.switchAdminTab = async function (tab) {
     if (tab === 'users') {
         usersTab?.style.setProperty('color', 'var(--text-primary)');
         usersTab?.style.setProperty('border-color', 'var(--gradient-start)');
-        if (searchInput) searchInput.placeholder = 'Поиск по имени, email или городу...';
+        if (searchInput) searchInput.placeholder = 'Search by name, email or city...';
         if (statsSection) statsSection.style.display = 'grid';
         if (paginationSection) paginationSection.style.display = 'flex';
         await loadAdminUsers();
     } else if (tab === 'chats') {
         chatsTab?.style.setProperty('color', 'var(--text-primary)');
         chatsTab?.style.setProperty('border-color', 'var(--gradient-start)');
-        if (searchInput) searchInput.placeholder = 'Поиск по имени...';
+        if (searchInput) searchInput.placeholder = 'Search by name...';
         if (statsSection) statsSection.style.display = 'none';
         if (paginationSection) paginationSection.style.display = 'none';
         await loadAdminChats();
     } else if (tab === 'promocodes') {
         promocodesTab?.style.setProperty('color', 'var(--text-primary)');
         promocodesTab?.style.setProperty('border-color', 'var(--gradient-start)');
-        if (searchInput) searchInput.placeholder = 'Поиск по коду...';
+        if (searchInput) searchInput.placeholder = 'Search by code...';
         if (statsSection) statsSection.style.display = 'none';
         if (paginationSection) paginationSection.style.display = 'none';
         await loadAdminPromocodes();
     } else if (tab === 'transactions') {
         transactionsTab?.style.setProperty('color', 'var(--text-primary)');
         transactionsTab?.style.setProperty('border-color', 'var(--gradient-start)');
-        if (searchInput) searchInput.placeholder = 'Поиск транзакций...';
+        if (searchInput) searchInput.placeholder = 'Search transactions...';
         if (statsSection) statsSection.style.display = 'none';
         if (paginationSection) paginationSection.style.display = 'none';
         await loadAdminTransactions();
@@ -4498,7 +4498,7 @@ function renderAdminPromocodesList() {
                     ${isActive ? `
                         <button onclick="handleDeactivatePromocode('${promo.id}')"
                             class="px-3 py-1 bg-red-500/20 text-red-400 rounded-lg text-sm hover:bg-red-500/30 transition-colors">
-                            Деактивировать
+                            Deactivate
                         </button>
                     ` : ''}
                 </td>
@@ -4525,12 +4525,12 @@ window.showCreatePromocodeModal = function () {
     modal.innerHTML = `
         <div class="glass rounded-2xl p-6 max-w-md w-full" style="border: 1px solid var(--border-color);">
             <h2 class="text-2xl font-bold mb-4" style="color: var(--text-primary);">
-                🎁 Создать Промокод
+                🎁 Create Promocode
             </h2>
             <form id="create-promocode-form" class="space-y-4">
                 <div>
                     <label class="block text-sm font-medium mb-2" style="color: var(--text-primary);">
-                        Код промокода
+                        Promocode
                     </label>
                     <input
                         type="text"
@@ -4544,7 +4544,7 @@ window.showCreatePromocodeModal = function () {
 
                 <div>
                     <label class="block text-sm font-medium mb-2" style="color: var(--text-primary);">
-                        Тип награды
+                        Reward Type
                     </label>
                     <select
                         id="promo-reward-type"
@@ -4552,15 +4552,15 @@ window.showCreatePromocodeModal = function () {
                         class="w-full px-4 py-3 rounded-xl border-2"
                         style="border-color: var(--border-color); background-color: var(--bg-secondary); color: var(--text-primary);"
                     >
-                        <option value="stars">⭐ Звезды</option>
-                        <option value="boosts">🚀 Бусты</option>
-                        <option value="vip">👑 VIP (дни)</option>
+                        <option value="stars">⭐ Stars</option>
+                        <option value="boosts">🚀 Boosts</option>
+                        <option value="vip">👑 VIP (days)</option>
                     </select>
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium mb-2" style="color: var(--text-primary);">
-                        Количество
+                        Amount
                     </label>
                     <input
                         type="number"
@@ -4575,12 +4575,12 @@ window.showCreatePromocodeModal = function () {
 
                 <div>
                     <label class="block text-sm font-medium mb-2" style="color: var(--text-primary);">
-                        Макс. использований (опционально)
+                        Max uses (optional)
                     </label>
                     <input
                         type="number"
                         id="promo-max-uses"
-                        placeholder="Не ограничено"
+                        placeholder="Unlimited"
                         min="1"
                         class="w-full px-4 py-3 rounded-xl border-2"
                         style="border-color: var(--border-color); background-color: var(--bg-secondary); color: var(--text-primary);"
@@ -4589,7 +4589,7 @@ window.showCreatePromocodeModal = function () {
 
                 <div>
                     <label class="block text-sm font-medium mb-2" style="color: var(--text-primary);">
-                        Срок действия (опционально)
+                        Expiration date (optional)
                     </label>
                     <input
                         type="datetime-local"
@@ -4601,10 +4601,10 @@ window.showCreatePromocodeModal = function () {
 
                 <div class="flex gap-3 mt-6">
                     <button type="button" onclick="closeCreatePromocodeModal()" class="flex-1 px-4 py-3 rounded-xl bg-gray-600 text-white font-semibold">
-                        Отмена
+                        Cancel
                     </button>
                     <button type="submit" class="flex-1 px-4 py-3 rounded-xl bg-green-500 text-white font-semibold">
-                        Создать
+                        Create
                     </button>
                 </div>
             </form>
@@ -4644,12 +4644,12 @@ async function handleCreatePromocode(e) {
             expires_at
         });
 
-        showNotification('✅ Промокод создан!', 'success');
+        showNotification('✅ Promocode created!', 'success');
         closeCreatePromocodeModal();
         await loadAdminPromocodes();
     } catch (error) {
         console.error('❌ Error creating promocode:', error);
-        showNotification(`Ошибка: ${error.message}`, 'error');
+        showNotification(`Error: ${error.message}`, 'error');
     }
 }
 
@@ -4657,15 +4657,15 @@ async function handleCreatePromocode(e) {
  * Handle promocode deactivation
  */
 window.handleDeactivatePromocode = async function (promocodeId) {
-    if (!confirm('Деактивировать этот промокод?')) return;
+    if (!confirm('Deactivate this promocode?')) return;
 
     try {
         await deactivatePromocode(promocodeId);
-        showNotification('✅ Промокод деактивирован', 'success');
+        showNotification('✅ Promocode deactivated', 'success');
         await loadAdminPromocodes();
     } catch (error) {
         console.error('❌ Error deactivating promocode:', error);
-        showNotification(`Ошибка: ${error.message}`, 'error');
+        showNotification(`Error: ${error.message}`, 'error');
     }
 };
 
@@ -4674,7 +4674,7 @@ window.handleDeactivatePromocode = async function (promocodeId) {
  */
 async function loadAdminBoosts() {
     try {
-        showNotification('Загрузка истории бустов...', 'info');
+        showNotification('Loading boosts history...', 'info');
 
         const boosts = await getAllBoostHistory(200); // Load latest 200
 
@@ -4694,10 +4694,10 @@ async function loadAdminBoosts() {
 
         // Render boosts list
         renderAdminBoostsList();
-        showNotification(`✅ Загружено ${filteredBoosts.length} бустов`, 'success');
+        showNotification(`✅ Loaded ${filteredBoosts.length} boosts`, 'success');
     } catch (error) {
         console.error('❌ Error loading boosts:', error);
-        showNotification('Ошибка загрузки бустов', 'error');
+        showNotification('Error loading boosts', 'error');
     }
 }
 
@@ -4716,8 +4716,8 @@ function renderAdminBoostsList() {
     if (!state.adminBoosts || state.adminBoosts.length === 0) {
         listContainer.innerHTML = `
             <div class="text-center py-12">
-                <p class="text-xl font-bold mb-2" style="color: var(--text-primary);">Нет бустов</p>
-                <p class="text-sm opacity-70" style="color: var(--text-secondary);">История бустов пока пуста</p>
+                <p class="text-xl font-bold mb-2" style="color: var(--text-primary);">No boosts</p>
+                <p class="text-sm opacity-70" style="color: var(--text-secondary);">Boosts history is empty</p>
             </div>
         `;
         return;
@@ -4730,9 +4730,9 @@ function renderAdminBoostsList() {
         <table class="w-full" style="border-collapse: collapse;">
             <thead>
                 <tr class="border-b-2" style="border-color: var(--border-color);">
-                    <th class="px-4 py-3 text-left text-sm font-bold" style="color: var(--text-primary);">Кто</th>
-                    <th class="px-4 py-3 text-left text-sm font-bold" style="color: var(--text-primary);">Кого</th>
-                    <th class="px-4 py-3 text-left text-sm font-bold" style="color: var(--text-primary);">Дата</th>
+                    <th class="px-4 py-3 text-left text-sm font-bold" style="color: var(--text-primary);">Who</th>
+                    <th class="px-4 py-3 text-left text-sm font-bold" style="color: var(--text-primary);">Whom</th>
+                    <th class="px-4 py-3 text-left text-sm font-bold" style="color: var(--text-primary);">Date</th>
                 </tr>
             </thead>
             <tbody id="boosts-table-body">
@@ -4746,7 +4746,7 @@ function renderAdminBoostsList() {
 
     state.adminBoosts.forEach(boost => {
         const createdAt = new Date(boost.created_at);
-        const formattedDate = createdAt.toLocaleString('ru-RU', {
+        const formattedDate = createdAt.toLocaleString('en-US', {
             day: '2-digit',
             month: '2-digit',
             year: 'numeric',
@@ -4949,7 +4949,7 @@ window.showTransactionDetail = function (transactionIndex) {
         <div class="glass rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto" style="border: 1px solid var(--border-color);">
             <div class="flex justify-between items-start mb-6">
                 <h2 class="text-2xl font-bold" style="color: var(--text-primary);">
-                    ${isVIP ? '👑' : '💰'} Детали транзакции
+                    ${isVIP ? '👑' : '💰'} Transaction Details
                 </h2>
                 <button onclick="closeTransactionDetail()" class="text-gray-400 hover:text-red-500 transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
@@ -4962,7 +4962,7 @@ window.showTransactionDetail = function (transactionIndex) {
                 <!-- Type & Status -->
                 <div class="flex gap-3">
                     <span class="px-3 py-1 ${isVIP ? 'bg-gradient-to-r from-yellow-500/20 to-yellow-600/20 text-yellow-400' : 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-400'} rounded-full text-sm font-bold">
-                        ${isVIP ? '👑 VIP Подписка' : '💰 Покупка валюты'}
+                        ${isVIP ? '👑 VIP Subscription' : '💰 Currency Purchase'}
                     </span>
                     <span class="px-3 py-1 bg-${statusColor}-500/20 text-${statusColor}-400 rounded-full text-sm font-bold">
                         ${transaction.payment_status}
@@ -4971,49 +4971,49 @@ window.showTransactionDetail = function (transactionIndex) {
 
                 <!-- User Info -->
                 <div class="p-4 rounded-xl glass">
-                    <h3 class="font-bold mb-2" style="color: var(--text-primary);">Пользователь</h3>
-                    <p style="color: var(--text-secondary);"><strong>Имя:</strong> ${transaction.user_name}</p>
+                    <h3 class="font-bold mb-2" style="color: var(--text-primary);">User</h3>
+                    <p style="color: var(--text-secondary);"><strong>Name:</strong> ${transaction.user_name}</p>
                     <p style="color: var(--text-secondary);"><strong>Email:</strong> ${transaction.user_email}</p>
                     <p style="color: var(--text-secondary);"><strong>ID:</strong> ${transaction.user_id}</p>
                 </div>
 
                 <!-- Package Details -->
                 <div class="p-4 rounded-xl glass">
-                    <h3 class="font-bold mb-2" style="color: var(--text-primary);">Детали пакета</h3>
+                    <h3 class="font-bold mb-2" style="color: var(--text-primary);">Package Details</h3>
                     ${isVIP ? `
-                        <p style="color: var(--text-secondary);"><strong>Тип:</strong> ${transaction.package_type}</p>
-                        <p style="color: var(--text-secondary);"><strong>Дней:</strong> ${transaction.vip_days === 999999 ? 'Навсегда' : transaction.vip_days}</p>
-                        <p style="color: var(--text-secondary);"><strong>Бонус звёзд:</strong> ${transaction.bonus_stars}</p>
+                        <p style="color: var(--text-secondary);"><strong>Type:</strong> ${transaction.package_type}</p>
+                        <p style="color: var(--text-secondary);"><strong>Days:</strong> ${transaction.vip_days === 999999 ? 'Forever' : transaction.vip_days}</p>
+                        <p style="color: var(--text-secondary);"><strong>Bonus stars:</strong> ${transaction.bonus_stars}</p>
                     ` : `
-                        <p style="color: var(--text-secondary);"><strong>Пакет:</strong> ${transaction.package_type}</p>
-                        <p style="color: var(--text-secondary);"><strong>Тип валюты:</strong> ${transaction.currency_type === 'stars' ? '⭐ Звёзды' : '🚀 Бусты'}</p>
-                        <p style="color: var(--text-secondary);"><strong>Количество:</strong> ${transaction.amount}</p>
+                        <p style="color: var(--text-secondary);"><strong>Package:</strong> ${transaction.package_type}</p>
+                        <p style="color: var(--text-secondary);"><strong>Currency type:</strong> ${transaction.currency_type === 'stars' ? '⭐ Stars' : '🚀 Boosts'}</p>
+                        <p style="color: var(--text-secondary);"><strong>Amount:</strong> ${transaction.amount}</p>
                     `}
                 </div>
 
                 <!-- Payment Info -->
                 <div class="p-4 rounded-xl glass">
-                    <h3 class="font-bold mb-2" style="color: var(--text-primary);">Платёжная информация</h3>
+                    <h3 class="font-bold mb-2" style="color: var(--text-primary);">Payment Information</h3>
                     <p style="color: var(--text-secondary);"><strong>Order ID:</strong> ${transaction.order_id}</p>
                     ${transaction.invoice_id ? `<p style="color: var(--text-secondary);"><strong>Invoice ID:</strong> ${transaction.invoice_id}</p>` : ''}
                     ${transaction.payment_id ? `<p style="color: var(--text-secondary);"><strong>Payment ID:</strong> ${transaction.payment_id}</p>` : ''}
-                    <p style="color: var(--text-secondary);"><strong>Цена:</strong> <span class="text-green-400 font-bold">$${transaction.price_amount} ${transaction.price_currency?.toUpperCase()}</span></p>
-                    ${transaction.actually_paid ? `<p style="color: var(--text-secondary);"><strong>Оплачено:</strong> ${transaction.actually_paid} ${transaction.pay_currency?.toUpperCase()}</p>` : ''}
+                    <p style="color: var(--text-secondary);"><strong>Price:</strong> <span class="text-green-400 font-bold">$${transaction.price_amount} ${transaction.price_currency?.toUpperCase()}</span></p>
+                    ${transaction.actually_paid ? `<p style="color: var(--text-secondary);"><strong>Paid:</strong> ${transaction.actually_paid} ${transaction.pay_currency?.toUpperCase()}</p>` : ''}
                 </div>
 
                 <!-- Timestamps -->
                 <div class="p-4 rounded-xl glass">
-                    <h3 class="font-bold mb-2" style="color: var(--text-primary);">Даты</h3>
-                    <p style="color: var(--text-secondary);"><strong>Создано:</strong> ${new Date(transaction.created_at).toLocaleString('ru-RU')}</p>
-                    ${transaction.updated_at && transaction.updated_at !== transaction.created_at ? `<p style="color: var(--text-secondary);"><strong>Обновлено:</strong> ${new Date(transaction.updated_at).toLocaleString('ru-RU')}</p>` : ''}
-                    ${transaction.paid_at ? `<p style="color: var(--text-secondary);"><strong>Оплачено:</strong> ${new Date(transaction.paid_at).toLocaleString('ru-RU')}</p>` : ''}
-                    ${transaction.activated_at ? `<p style="color: var(--text-secondary);"><strong>Активировано:</strong> ${new Date(transaction.activated_at).toLocaleString('ru-RU')}</p>` : ''}
+                    <h3 class="font-bold mb-2" style="color: var(--text-primary);">Dates</h3>
+                    <p style="color: var(--text-secondary);"><strong>Created:</strong> ${new Date(transaction.created_at).toLocaleString('en-US')}</p>
+                    ${transaction.updated_at && transaction.updated_at !== transaction.created_at ? `<p style="color: var(--text-secondary);"><strong>Updated:</strong> ${new Date(transaction.updated_at).toLocaleString('en-US')}</p>` : ''}
+                    ${transaction.paid_at ? `<p style="color: var(--text-secondary);"><strong>Paid:</strong> ${new Date(transaction.paid_at).toLocaleString('en-US')}</p>` : ''}
+                    ${transaction.activated_at ? `<p style="color: var(--text-secondary);"><strong>Activated:</strong> ${new Date(transaction.activated_at).toLocaleString('en-US')}</p>` : ''}
                 </div>
 
                 ${transaction.invoice_url ? `
                     <a href="${transaction.invoice_url}" target="_blank" 
                        class="block w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold py-3 px-6 rounded-xl text-center hover:scale-105 transition-all">
-                        🔗 Открыть инвойс
+                        🔗 Open Invoice
                     </a>
                 ` : ''}
             </div>
