@@ -1057,25 +1057,6 @@ export async function sendVerificationCode(email) {
 }
 
 /**
- * Store verification code temporarily (in memory)
- * @param {string} email - User email
- * @param {string} code - Verification code
- * @param {number} expiresInMinutes - Expiration time in minutes (default 10)
- */
-export function storeVerificationCode(email, code, expiresInMinutes = 10) {
-    if (!window.__verificationCodes) {
-        window.__verificationCodes = {};
-    }
-
-    window.__verificationCodes[email] = {
-        code,
-        expiresAt: Date.now() + (expiresInMinutes * 60 * 1000)
-    };
-
-    console.log(`🔐 Verification code stored for ${email}`);
-}
-
-/**
  * Verify code via Supabase Edge Function
  * SECURE: Verification happens on server, code never exposed to client
  * @param {string} email - User email
@@ -1114,17 +1095,6 @@ export async function verifyCode(email, code) {
 
     console.warn('⚠️ Verification code mismatch for', email);
     return false;
-}
-
-/**
- * Clear verification code
- * @param {string} email - User email
- */
-export function clearVerificationCode(email) {
-    if (window.__verificationCodes && window.__verificationCodes[email]) {
-        delete window.__verificationCodes[email];
-        console.log(`🗑️ Verification code cleared for ${email}`);
-    }
 }
 
 /**
