@@ -1,5 +1,5 @@
 /**
- * PRIDE GUARD DATING APP - MAIN APPLICATION
+ * SPARK DATING APP - MAIN APPLICATION
  * Основная логика приложения знакомств
  */
 
@@ -1213,10 +1213,16 @@ window.finishOnboarding = async function (event) {
         console.log('DEBUG: sendVerificationCode result:', result);
 
         let verificationCode = null;
+
+        // Handle different return formats:
+        // - Object with code property: {code: "123456", expiresAt: "..."}
+        // - Direct string: "123456"
         if (result && typeof result === 'object' && result.code) {
             verificationCode = result.code;
         } else if (result && typeof result === 'string') {
             verificationCode = result;
+        } else if (typeof result === 'number') {
+            verificationCode = result.toString();
         }
 
         // Check for code existence
@@ -1224,6 +1230,8 @@ window.finishOnboarding = async function (event) {
             console.error('❌ Verification code missing in response:', result);
             throw new Error('Unable to get verification code from server');
         }
+
+        console.log(`✅ Verification code received: ${verificationCode}`);
 
         // Store code temporarily (expires in 10 minutes)
         storeVerificationCode(email, verificationCode, 10);
@@ -1306,11 +1314,16 @@ window.handleVerifyCode = async function (event) {
 
     try {
         console.log('🔐 Verifying code for email:', state.pendingEmail);
+        console.log('🔍 User entered code:', code);
+        console.log('🔍 Stored codes in memory:', window.__verificationCodes);
 
         // Verify code
         const isValid = verifyCode(state.pendingEmail, code);
 
         if (!isValid) {
+            console.error('❌ Code verification failed!');
+            console.error('   Expected code from storage:', window.__verificationCodes?.[state.pendingEmail]);
+            console.error('   User entered:', code);
             showErrorMessage('Invalid or expired code. Please try again.');
             state.isVerifying = false;
             if (submitBtn) {
@@ -1319,7 +1332,6 @@ window.handleVerifyCode = async function (event) {
             }
             return;
         }
-
         console.log('✅ Code verified successfully');
         showNotification('✅ Code verified! Creating account...', 'success');
 
