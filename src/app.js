@@ -549,7 +549,7 @@ window.toggleUnits = function (system) {
                 const totalInches = cm / 2.54;
                 const feet = Math.floor(totalInches / 12);
                 const inches = Math.round(totalInches % 12);
-                
+
                 if (heightFtInput) heightFtInput.value = feet;
                 if (heightInInput) heightInInput.value = inches;
             }
@@ -561,7 +561,7 @@ window.toggleUnits = function (system) {
                 const inches = parseInt(heightInInput.value || 0);
                 const totalInches = (feet * 12) + inches;
                 const cm = Math.round(totalInches * 2.54);
-                
+
                 if (heightInput) heightInput.value = cm;
             }
         }
@@ -584,7 +584,7 @@ function updateUnitUI() {
     const btnImperial = document.getElementById('unit-imperial');
     const labelHeight = document.getElementById('height-unit');
     const labelWeight = document.getElementById('weight-unit');
-    
+
     // Containers
     const heightMetricContainer = document.getElementById('height-metric-container');
     const heightImperialContainer = document.getElementById('height-imperial-container');
@@ -599,7 +599,7 @@ function updateUnitUI() {
 
         if (labelHeight) labelHeight.textContent = ''; // Hidden in imperial mode structure
         if (labelWeight) labelWeight.textContent = '(фунты)';
-        
+
         // Toggle containers
         if (heightMetricContainer) heightMetricContainer.classList.add('hidden');
         if (heightImperialContainer) heightImperialContainer.classList.remove('hidden');
@@ -609,7 +609,7 @@ function updateUnitUI() {
         if (form) {
             // Height inputs are separate now, handled by HTML attributes mostly
             // But we can ensure they are correct if needed
-            
+
             if (form.weight) {
                 form.weight.placeholder = '150';
                 form.weight.min = '66'; // 30 kg = 66.14 lbs
@@ -1210,6 +1210,11 @@ window.finishOnboarding = async function (event) {
 
         // Send verification code via Edge Function
         const code = await sendVerificationCode(email);
+
+        // ДОБАВЛЕНО: Проверка на наличие кода
+        if (!code) {
+            throw new Error('Не удалось получить код подтверждения');
+        }
 
         // Store code temporarily (expires in 10 minutes)
         storeVerificationCode(email, code, 10);
@@ -2147,12 +2152,12 @@ function renderProfileEdit() {
         if (state.myProfile.height) {
             // Always set metric value
             if (heightInput) heightInput.value = state.myProfile.height;
-            
+
             // Also set imperial values for the hidden inputs (or if mode is imperial)
             const totalInches = state.myProfile.height / 2.54;
             const feet = Math.floor(totalInches / 12);
             const inches = Math.round(totalInches % 12);
-            
+
             if (heightFtInput) heightFtInput.value = feet;
             if (heightInInput) heightInInput.value = inches;
         }
@@ -2474,12 +2479,12 @@ window.saveProfile = async function () {
         // Calculate height from feet/inches
         const feet = parseInt(form.height_ft.value || 0);
         const inches = parseInt(form.height_in.value || 0);
-        
+
         if (feet > 0) {
             const totalInches = (feet * 12) + inches;
             height = Math.round(totalInches * 2.54);
         }
-        
+
         // Convert Lbs to KG
         if (weight) weight = Math.round(weight / 2.20462);
     } else {
