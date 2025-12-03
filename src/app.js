@@ -46,9 +46,7 @@ import {
     banUser,
     unbanUser,
     sendVerificationCode,
-    storeVerificationCode,
     verifyCode,
-    clearVerificationCode,
     // Verification system
     generateVerificationChallenge,
     uploadVerificationPhoto,
@@ -1209,35 +1207,8 @@ window.finishOnboarding = async function (event) {
         showNotification('Sending verification code...', 'info');
 
         // Send verification code via Edge Function
-        export async function sendVerificationCode(email) {
-    const supabase = getSupabase();
-    
-    console.log(`📧 Sending verification code to ${email}`);
-    
-    const { data, error } = await supabase.functions.invoke('send-verification-code', {
-        body: { email }
-    });
-    
-    if (error) {
-        console.error('❌ Error sending code:', error);
-        throw error;
-    }
-    
-    console.log('✅ Code sent successfully (not returned for security)');
-    
-    // НЕ возвращаем код! Только успех
-    return { success: true };
-
-        // Check for code existence
-        if (!verificationCode) {
-            console.error('❌ Verification code missing in response:', result);
-            throw new Error('Unable to get verification code from server');
-        }
-
-        console.log(`✅ Verification code received: ${verificationCode}`);
-
-        // Store code temporarily (expires in 10 minutes)
-        storeVerificationCode(email, verificationCode, 10);
+        const result = await sendVerificationCode(email);
+        console.log('DEBUG: sendVerificationCode result:', result);
 
         // Store email for later use
         state.pendingEmail = email;
@@ -1284,7 +1255,6 @@ function renderEmailVerification() {
 
 window.goBackToEmailInput = function () {
     console.log('⬅️ Going back to email input');
-    clearVerificationCode(state.pendingEmail);
     state.pendingEmail = null;
     state.onboardingStep = 3;
     appContent.innerHTML = '';
@@ -1318,31 +1288,24 @@ window.handleVerifyCode = async function (event) {
     try {
         console.log('🔐 Verifying code for email:', state.pendingEmail);
         console.log('🔍 User entered code:', code);
-        console.log('🔍 Stored codes in memory:', window.__verificationCodes);
 
-        // Verify code
-        export async function verifyCode(email, code) {
-    const supabase = getSupabase();
-    
-    console.log(`🔐 Verifying code for ${email}`);
-    
-    const { data, error } = await supabase.functions.invoke('verify-code', {
-        body: { email, code }
-    });
-    
-    if (error) {
-        console.error('❌ Verification error:', error);
-        return false;
-    }
-    
-    if (!data?.success) {
-        console.log('❌ Invalid code');
-        return false;
-    }
-    
-    console.log('✅ Code verified successfully');
-    return true;
-}
+        // Verify code via Edge Function
+        const isValid = await verifyCode(state.pendingEmail, code);
+
+        if (!isValid) {
+            console.error('❌ Code verification failed!');
+            showErrorMessage('Invalid or expired code. Please try again.');
+            state.isVerifying = false;
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnText;
+            }
+            return;
+        }
+        console.log('✅ Code verified successfully');
+        showNotification('✅ Code verified! Creating account...', 'success');
+
+        const email = state.pendingEmail;
 
         // Check if we have Telegram ID - use Telegram registration path
         if (state.telegramId) {
